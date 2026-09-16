@@ -1,0 +1,106 @@
+name: CI/CD
+
+# Pipeline de integración y despliegue continuo.
+# - En cada push/PR: instala, verifica tipos, ejecuta tests y construye.
+# - El build de producción inyecta variables parametrizadas (GitHub Variables
+#   y Secrets) mediante `scripts/set-environment.mjs`. Nunca hay credenciales
+#   versionadas en el repositorio.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Ambiente a construir/desplegar
+        type: choice
+        options: [staging, production]
+        default: staging
+
+# Permisos mínimos necesarios.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Cancela ejecuciones antiguas del mismo ref para ahorrar minutos de CI.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-test:
+    name: Build y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar tipos (TypeScript)
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Ejecutar tests unitarios (headless + cobertura)
+        run: npm run test:ci
+
+      - name: Publicar reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Construir bundle de desarrollo
+        run: npm run build:dev
+
+  build-production:
+    name: Build producción (parametrizado)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    # Se ejecuta en main o cuando se lanza manualmente.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    env:
+      # Variables parametrizadas: se definen en Settings > Secrets and variables > Actions.
+      API_BASE_URL: ${{ vars.API_BASE_URL || secrets.API_BASE_URL }}
+      API_KEY: ${{ secrets.API_KEY }}
+      DEFAULT_PAGE_SIZE: ${{ vars.DEFAULT_PAGE_SIZE || '5' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Inyectar variables de entorno en el bundle
+        run: npm run set-env -- ${{ github.event.inputs.target || 'production' }}
+
+      - name: Construir bundle de producción
+        run: npm run build:prod
+
+      - name: Subir artefacto del build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-production
+          path: dist/
+          retention-days: 14

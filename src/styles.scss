@@ -1,0 +1,64 @@
+@use '@angular/material' as mat;
+
+/* ------------------------------------------------------------------
+ * Tema global de Angular Material 3.
+ * `mat.theme` genera los tokens de color, tipografía y densidad, y se
+ * complementa con tokens de sistema reutilizados en los componentes.
+ * ------------------------------------------------------------------ */
+html {
+  color-scheme: light;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+}
+
+/* Utilidades compartidas por las tablas de las features */
+.table-container {
+  position: relative;
+  overflow: auto;
+}
+
+table.mat-mdc-table {
+  width: 100%;
+}
+
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 0;
+}
+
+.empty-state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Ajustes responsive: en pantallas pequeñas las tablas hacen scroll horizontal */
+@media (max-width: 599.98px) {
+  .hide-xs {
+    display: none !important;
+  }
+}

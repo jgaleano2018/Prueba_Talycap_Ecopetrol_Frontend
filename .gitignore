@@ -1,0 +1,36 @@
+# Dependencias
+/node_modules
+/.pnp
+.pnp.js
+
+# Build
+/dist
+/out-tsc
+/tmp
+/coverage
+
+# IDEs
+/.idea
+/.vscode/*
+!/.vscode/extensions.json
+/.history
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# Angular
+.angular/cache
+/.sass-cache
+/connect.lock
+/libpeerconnection.log
+testem.log
+/typings
+
+# Entornos locales con valores reales (nunca versionar secretos)
+src/environments/environment.prod.local.ts
